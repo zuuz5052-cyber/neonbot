@@ -23,23 +23,27 @@ cursor.execute('''
 ''')
 conn.commit()
 
-# 2. Ссылки на игры и магазин
-# Внимание: теперь лидерборд будет открываться прямо с сервера твоего бота!
-# На Render вместо локального адреса будет использоваться твой публичный домен бота.
+# 2. Твои ссылки на игры и магазин
 URL_SHOP = "https://shopgg.tiiny.site" 
 URL_NEON_GAME = "https://neongamesnownb.tiiny.site" 
 URL_TRACK_GAME = "https://trackdeathgame.tiiny.site" 
 URL_WORDS_GAME = "https://worldsgame.tiiny.site" 
-URL_WAVE_GAME = "https://wawegame.tiiny.site" 
+URL_WAVE_GAME = "https://wawegame.tiiny.site" # <--- Твоя актуальная ссылка на игру "Волна"
 
-def get_main_keyboard(render_url):
+# Функция клавиатуры (автоматически определяет адрес твоего сервера для лидерборда)
+def get_main_keyboard():
+    render_url = os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:10000")
+    
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
-    # Кнопка лидерборда ссылается на веб-сервер бота (/leaderboard)
+    # Ряд 1: Лидерборд на всю ширину сверху
     btn_leaderboard = KeyboardButton("🏆 Лидерборд", web_app=WebAppInfo(url=f"{render_url}/leaderboard"))
+    
+    # Ряд 2: Профиль и Магазин рядом
     btn_profile = KeyboardButton("👤 Профиль")
     btn_shop = KeyboardButton("🛒 Магазин", web_app=WebAppInfo(url=URL_SHOP))
     
+    # Ряд 3 и 4: Игры
     btn_neon = KeyboardButton("⚡ Неон", web_app=WebAppInfo(url=URL_NEON_GAME))
     btn_track = KeyboardButton("🏎 Трасса смерти", web_app=WebAppInfo(url=URL_TRACK_GAME))
     btn_words = KeyboardButton("💬 Игра в слова", web_app=WebAppInfo(url=URL_WORDS_GAME))
@@ -50,9 +54,6 @@ def get_main_keyboard(render_url):
     markup.add(btn_neon, btn_track, btn_words, btn_wave)
     
     return markup
-
-# Получаем публичный URL на Render или ставим дефолт
-RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://neonbot-xxxx.onrender.com")
 
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
@@ -66,12 +67,12 @@ def start_cmd(message):
         bot.send_message(
             message.chat.id, 
             "Привет! Игровой хаб запущен 🎮\nВыбирай раздел в меню ниже:", 
-            reply_markup=get_main_keyboard(RENDER_EXTERNAL_URL)
+            reply_markup=get_main_keyboard()
         )
     except Exception as e:
         print(f"Ошибка в start: {e}")
 
-# Профиль
+# Обработка нажатия на кнопку "👤 Профиль"
 @bot.message_handler(func=lambda message: message.text and "Профиль" in message.text)
 def profile_cmd(message):
     try:
@@ -92,7 +93,7 @@ def profile_cmd(message):
     except Exception as e:
         print(f"Ошибка в профиле: {e}")
 
-# Перехват очков из игр
+# ПЕРЕХВАТ ОЧКОВ ИЗ ЛЮБОЙ ИГРЫ Web App
 @bot.message_handler(content_types=['web_app_data'])
 def receive_webapp_data(message):
     try:
@@ -107,7 +108,6 @@ def receive_webapp_data(message):
             
         cursor.execute("INSERT OR IGNORE INTO players (user_id, username, total_score, games_played) VALUES (?, ?, 0, 0)", 
                        (user_id, username))
-        # Также обновляем имя, если вдруг изменилось
         cursor.execute("UPDATE players SET username = ?, total_score = total_score + ?, games_played = games_played + 1 WHERE user_id = ?", 
                        (username, earned_score, user_id))
         conn.commit()
@@ -121,7 +121,7 @@ def receive_webapp_data(message):
         print(f"Ошибка при получении данных игры: {e}")
 
 
-# --- FLASK СЕРВЕР И САЙТ ЛИДЕРБОРДА ---
+# --- FLASK СЕРВЕР ДЛЯ РЕАЛЬНОГО ЛИДЕРБОРДА ---
 app = Flask(__name__)
 
 LEADERBOARD_HTML = """
@@ -172,7 +172,6 @@ LEADERBOARD_HTML = """
 
 @app.route('/leaderboard')
 def leaderboard():
-    # Достаем реальных топ-10 игроков из базы SQLite
     db_conn = sqlite3.connect('users.db', check_same_thread=False)
     db_cursor = db_conn.cursor()
     db_cursor.execute("SELECT username, total_score FROM players ORDER BY total_score DESC LIMIT 10")
@@ -189,7 +188,7 @@ def run_server():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
-# Запускаем Flask-сервер в фоновом потоке (он же защищает от сна на Render)
+# Запуск сервера в фоне
 threading.Thread(target=run_server, daemon=True).start()
 
 print("Бот и веб-сервер успешно запущены!")
