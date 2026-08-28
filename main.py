@@ -9,7 +9,7 @@ import os
 TOKEN = '8836477860:AAE3bN5zTLO0YZUMYleqTMbJwlXdHf1cHwI'
 bot = telebot.TeleBot(TOKEN)
 
-# --- БАЗА ДАННЫХ ДЛЯ ПРОФИЛЕЙ ---
+# --- БАЗА ДАННЫХ ДЛЯ ПРОФИЛЕЙ И БАЛАНСА ---
 conn = sqlite3.connect('users.db', check_same_thread=False)
 cursor = conn.cursor()
 
@@ -32,13 +32,17 @@ URL_WAVE_GAME = "https://wawegame.tiiny.site"
 def get_main_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
+    # Кнопки профиля и магазина на первой строчке рядом
     btn_profile = KeyboardButton("👤 Профиль")
+    btn_shop = KeyboardButton("🛒 Магазин")
+    
     btn_neon = KeyboardButton("⚡ Неон", web_app=WebAppInfo(url=URL_NEON_GAME))
     btn_track = KeyboardButton("🏎 Трасса смерти", web_app=WebAppInfo(url=URL_TRACK_GAME))
     btn_words = KeyboardButton("💬 Игра в слова", web_app=WebAppInfo(url=URL_WORDS_GAME))
     btn_wave = KeyboardButton("🌊 Волна", web_app=WebAppInfo(url=URL_WAVE_GAME))
     
-    markup.add(btn_profile)
+    # Расставляем по порядку: Профиль и Магазин сверху, далее сетка игр
+    markup.add(btn_profile, btn_shop)
     markup.add(btn_neon, btn_track, btn_words, btn_wave)
     
     return markup
@@ -54,13 +58,24 @@ def start_cmd(message):
 
         bot.send_message(
             message.chat.id, 
-            "Привет! Игровой хаб запущен 🎮\nВыбирай игру или открой профиль в меню ниже:", 
+            "Привет! Игровой хаб запущен 🎮\nВыбирай игру, открой профиль или загляни в магазин:", 
             reply_markup=get_main_keyboard()
         )
     except Exception as e:
         print(f"Ошибка в start: {e}")
 
-# Обработка нажатия на кнопку "👤 Профиль" (используем safer func)
+# Команда /help с твоим юзернеймом
+@bot.message_handler(commands=['help'])
+def help_cmd(message):
+    help_text = (
+        f"🆘 **Помощь по боту:**\n\n"
+        f"🎮 Играй в мини-игры, зарабатывай очки и трать их в магазине!\n"
+        f"🛒 Нажми кнопку «Магазин», чтобы посмотреть доступные призы.\n\n"
+        f"💬 По всем вопросам и для получения призов пиши создателю: **@zews_zuuz**"
+    )
+    bot.send_message(message.chat.id, help_text, parse_mode="Markdown")
+
+# Обработка нажатия на кнопку "👤 Профиль"
 @bot.message_handler(func=lambda message: message.text and "Профиль" in message.text)
 def profile_cmd(message):
     try:
@@ -85,7 +100,22 @@ def profile_cmd(message):
     except Exception as e:
         print(f"Ошибка в профиле: {e}")
 
-# ПЕРЕХВАТ ОЧКОВ ИЗ ИГРЫ Web App (с защитой от сбоев)
+# Обработка нажатия на кнопку "🛒 Магазин" (товары по возрастанию цены)
+@bot.message_handler(func=lambda message: message.text and "Магазин" in message.text)
+def shop_cmd(message):
+    shop_text = (
+        f"🛒 **Магазин призов за очки:**\n\n"
+        f"1️⃣ **Игра в боте по вашему пожеланию**\n"
+        f"   💰 Цена: **2 000 очков**\n\n"
+        f"2️⃣ **Рандомный скин КС (от 50 до 200 руб.)**\n"
+        f"   💰 Цена: **7 777 очков**\n\n"
+        f"3️⃣ **Прокачка на кейс батле на 50 рублей**\n"
+        f"   💰 Цена: **10 000 очков**\n\n"
+        f"👇 Накопил нужное количество очков? Сделай скриншот профиля и пиши создателю: **@zews_zuuz**"
+    )
+    bot.send_message(message.chat.id, shop_text, parse_mode="Markdown")
+
+# ПЕРЕХВАТ ОЧКОВ ИЗ ИГРЫ Web App
 @bot.message_handler(content_types=['web_app_data'])
 def receive_webapp_data(message):
     try:
@@ -108,7 +138,7 @@ def receive_webapp_data(message):
             message.chat.id, 
             f"🎮 Игра окончена!\n✨ Заработано очков: **{earned_score}**\n📊 Они успешно записаны в твой профиль!", 
             parse_mode="Markdown"
-    )
+        )
     except Exception as e:
         print(f"Ошибка при получении данных игры: {e}")
 
@@ -122,13 +152,14 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Bot is alive!")
 
 def run_server():
+    port = int(os.environ.com("PORT", 10000) if hasattr(os, "environ") else 10000)
+    # Исправление для безопасности порта на Render:
     port = int(os.environ.get("PORT", 10000))
     server = HTTPServer(("0.0.0.0", port), SimpleHandler)
     server.serve_forever()
 
 threading.Thread(target=run_server, daemon=True).start()
 
-# Запуск с авто-переподключением при обрывах связи
 while True:
     try:
         bot.polling(none_stop=True, interval=0, timeout=20)
