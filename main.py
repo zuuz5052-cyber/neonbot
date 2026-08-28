@@ -23,7 +23,8 @@ cursor.execute('''
 ''')
 conn.commit()
 
-# 2. Ссылки на игры и магазин
+# 2. Ссылки на сайты и игры
+URL_LEADERBOARD = "https://leaderboardgg.tiiny.site" 
 URL_SHOP = "https://shopgg.tiiny.site" 
 URL_NEON_GAME = "https://neongamesnownb.tiiny.site" 
 URL_TRACK_GAME = "https://trackdeathgame.tiiny.site" 
@@ -33,15 +34,20 @@ URL_WAVE_GAME = "https://wawegame.tiiny.site"
 def get_main_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
-    # Кнопки профиля и магазина на первой строчке рядом
+    # Ряд 1: Лидерборд на всю ширину сверху
+    btn_leaderboard = KeyboardButton("🏆 Лидерборд", web_app=WebAppInfo(url=URL_LEADERBOARD))
+    
+    # Ряд 2: Профиль и Магазин рядом
     btn_profile = KeyboardButton("👤 Профиль")
     btn_shop = KeyboardButton("🛒 Магазин", web_app=WebAppInfo(url=URL_SHOP))
     
+    # Ряд 3 и 4: Игры
     btn_neon = KeyboardButton("⚡ Неон", web_app=WebAppInfo(url=URL_NEON_GAME))
     btn_track = KeyboardButton("🏎 Трасса смерти", web_app=WebAppInfo(url=URL_TRACK_GAME))
     btn_words = KeyboardButton("💬 Игра в слова", web_app=WebAppInfo(url=URL_WORDS_GAME))
     btn_wave = KeyboardButton("🌊 Волна", web_app=WebAppInfo(url=URL_WAVE_GAME))
     
+    markup.add(btn_leaderboard)
     markup.add(btn_profile, btn_shop)
     markup.add(btn_neon, btn_track, btn_words, btn_wave)
     
@@ -58,7 +64,7 @@ def start_cmd(message):
 
         bot.send_message(
             message.chat.id, 
-            "Привет! Игровой хаб запущен 🎮\nВыбирай игру, открой профиль или загляни в магазин:", 
+            "Привет! Игровой хаб запущен 🎮\nВыбирай раздел в меню ниже:", 
             reply_markup=get_main_keyboard()
         )
     except Exception as e:
