@@ -45,63 +45,72 @@ def get_main_keyboard():
 
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
-    user_id = message.from_user.id
-    username = message.from_user.first_name or "Игрок"
-    
-    cursor.execute("INSERT OR IGNORE INTO players (user_id, username, total_score, games_played) VALUES (?, ?, 0, 0)", (user_id, username))
-    conn.commit()
-
-    bot.send_message(
-        message.chat.id, 
-        "Привет! Игровой хаб запущен 🎮\nВыбирай игру или открой профиль в меню ниже:", 
-        reply_markup=get_main_keyboard()
-    )
-
-# Обработка нажатия на кнопку "👤 Профиль"
-@bot.message_handler(func=lambda message: message.text == "👤 Профиль")
-def profile_cmd(message):
-    user_id = message.from_user.id
-    
-    cursor.execute("SELECT total_score, games_played FROM players WHERE user_id = ?", (user_id,))
-    user_data = cursor.fetchone()
-    
-    if user_data:
-        score, games = user_data
-    else:
-        score, games = 0, 0
+    try:
+        user_id = message.from_user.id
+        username = message.from_user.first_name or "Игрок"
         
-    text = (
-        f"👤 **Твой профиль:**\n\n"
-        f"🆔 ID: `{user_id}`\n"
-        f"🏆 Общие очки: **{score}**\n"
-        f"🎮 Сыграно сессий: **{games}**\n\n"
-        f"Продолжай играть и ставь новые рекорды!"
-    )
-    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+        cursor.execute("INSERT OR IGNORE INTO players (user_id, username, total_score, games_played) VALUES (?, ?, 0, 0)", (user_id, username))
+        conn.commit()
 
-# ПЕРЕХВАТ ОЧКОВ ИЗ ИГРЫ Web App
+        bot.send_message(
+            message.chat.id, 
+            "Привет! Игровой хаб запущен 🎮\nВыбирай игру или открой профиль в меню ниже:", 
+            reply_markup=get_main_keyboard()
+        )
+    except Exception as e:
+        print(f"Ошибка в start: {e}")
+
+# Обработка нажатия на кнопку "👤 Профиль" (используем safer func)
+@bot.message_handler(func=lambda message: message.text and "Профиль" in message.text)
+def profile_cmd(message):
+    try:
+        user_id = message.from_user.id
+        
+        cursor.execute("SELECT total_score, games_played FROM players WHERE user_id = ?", (user_id,))
+        user_data = cursor.fetchone()
+        
+        if user_data:
+            score, games = user_data
+        else:
+            score, games = 0, 0
+            
+        text = (
+            f"👤 **Твой профиль:**\n\n"
+            f"🆔 ID: `{user_id}`\n"
+            f"🏆 Общие очки: **{score}**\n"
+            f"🎮 Сыграно сессий: **{games}**\n\n"
+            f"Продолжай играть и ставь новые рекорды!"
+        )
+        bot.send_message(message.chat.id, text, parse_mode="Markdown")
+    except Exception as e:
+        print(f"Ошибка в профиле: {e}")
+
+# ПЕРЕХВАТ ОЧКОВ ИЗ ИГРЫ Web App (с защитой от сбоев)
 @bot.message_handler(content_types=['web_app_data'])
 def receive_webapp_data(message):
-    user_id = message.from_user.id
     try:
-        earned_score = int(message.web_app_data.data)
-    except ValueError:
-        earned_score = 0
+        user_id = message.from_user.id
+        raw_data = message.web_app_data.data
         
-    # Проверяем есть ли юзер в базе, если нет — создаем
-    cursor.execute("INSERT OR IGNORE INTO players (user_id, username, total_score, games_played) VALUES (?, ?, 0, 0)", 
-                   (user_id, message.from_user.first_name or "Игрок"))
-    
-    # Обновляем очки и прибавляем +1 к сыгранным играм
-    cursor.execute("UPDATE players SET total_score = total_score + ?, games_played = games_played + 1 WHERE user_id = ?", 
-                   (earned_score, user_id))
-    conn.commit()
-    
-    bot.send_message(
-        message.chat.id, 
-        f"🎮 Игра окончена!\n✨ Заработано очков: **{earnedscore}**\n📊 Они успешно записаны твой профиль!", 
-        parse_mode="Markdown"
+        try:
+            earned_score = int(raw_data)
+        except (ValueError, TypeError):
+            earned_score = 0
+            
+        cursor.execute("INSERT OR IGNORE INTO players (user_id, username, total_score, games_played) VALUES (?, ?, 0, 0)", 
+                       (user_id, message.from_user.first_name or "Игрок"))
+        
+        cursor.execute("UPDATE players SET total_score = total_score + ?, games_played = games_played + 1 WHERE user_id = ?", 
+                       (earned_score, user_id))
+        conn.commit()
+        
+        bot.send_message(
+            message.chat.id, 
+            f"🎮 Игра окончена!\n✨ Заработано очков: **{earned_score}**\n📊 Они успешно записаны в твой профиль!", 
+            parse_mode="Markdown"
     )
+    except Exception as e:
+        print(f"Ошибка при получении данных игры: {e}")
 
 print("Бот успешно запущен! Жду команд...")
 
@@ -119,4 +128,9 @@ def run_server():
 
 threading.Thread(target=run_server, daemon=True).start()
 
-bot.polling(none_stop=True)
+# Запуск с авто-переподключением при обрывах связи
+while True:
+    try:
+        bot.polling(none_stop=True, interval=0, timeout=20)
+    except Exception as e:
+        print(f"Ошибка соединения: {e}")
