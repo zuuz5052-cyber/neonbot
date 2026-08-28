@@ -32,7 +32,7 @@ URL_WAVE_GAME = "https://wawegame.tiiny.site"
 def get_main_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
-    # Кнопки профиля и магазина на первой строчке рядом
+    # Кнопки профиля и магазина рядом на первой строчке
     btn_profile = KeyboardButton("👤 Профиль")
     btn_shop = KeyboardButton("🛒 Магазин")
     
@@ -41,7 +41,6 @@ def get_main_keyboard():
     btn_words = KeyboardButton("💬 Игра в слова", web_app=WebAppInfo(url=URL_WORDS_GAME))
     btn_wave = KeyboardButton("🌊 Волна", web_app=WebAppInfo(url=URL_WAVE_GAME))
     
-    # Расставляем по порядку: Профиль и Магазин сверху, далее сетка игр
     markup.add(btn_profile, btn_shop)
     markup.add(btn_neon, btn_track, btn_words, btn_wave)
     
@@ -68,10 +67,10 @@ def start_cmd(message):
 @bot.message_handler(commands=['help'])
 def help_cmd(message):
     help_text = (
-        f"🆘 **Помощь по боту:**\n\n"
-        f"🎮 Играй в мини-игры, зарабатывай очки и трать их в магазине!\n"
-        f"🛒 Нажми кнопку «Магазин», чтобы посмотреть доступные призы.\n\n"
-        f"💬 По всем вопросам и для получения призов пиши создателю: **@zews_zuuz**"
+        "🆘 **Помощь по боту:**\n\n"
+        "🎮 Играй в мини-игры, зарабатывай очки и трать их в магазине!\n"
+        "🛒 Нажми кнопку «🛒 Магазин», чтобы посмотреть доступные призы.\n\n"
+        "💬 По всем вопросам и для получения призов пиши создателю: **@zews_zuuz**"
     )
     bot.send_message(message.chat.id, help_text, parse_mode="Markdown")
 
@@ -101,17 +100,17 @@ def profile_cmd(message):
         print(f"Ошибка в профиле: {e}")
 
 # Обработка нажатия на кнопку "🛒 Магазин" (товары по возрастанию цены)
-@bot.message_handler(func=lambda message: message.text and "Магазин" in message.text)
+@bot.message_handler(func=lambda message: message.text == "🛒 Магазин")
 def shop_cmd(message):
     shop_text = (
-        f"🛒 **Магазин призов за очки:**\n\n"
-        f"1️⃣ **Игра в боте по вашему пожеланию**\n"
-        f"   💰 Цена: **2 000 очков**\n\n"
-        f"2️⃣ **Рандомный скин КС (от 50 до 200 руб.)**\n"
-        f"   💰 Цена: **7 777 очков**\n\n"
-        f"3️⃣ **Прокачка на кейс батле на 50 рублей**\n"
-        f"   💰 Цена: **10 000 очков**\n\n"
-        f"👇 Накопил нужное количество очков? Сделай скриншот профиля и пиши создателю: **@zews_zuuz**"
+        "🛒 **Магазин призов за очки:**\n\n"
+        "1️⃣ **Игра в боте по вашему пожеланию**\n"
+        "   💰 Цена: **2 000 очков**\n\n"
+        "2️⃣ **Рандомный скин КС (от 50 до 200 руб.)**\n"
+        "   💰 Цена: **7 777 очков**\n\n"
+        "3️⃣ **Прокачка на кейс батле на 50 рублей**\n"
+        "   💰 Цена: **10 000 очков**\n\n"
+        "👇 Накопил нужное количество очков? Сделай скриншот профиля и пиши создателю: **@zews_zuuz**"
     )
     bot.send_message(message.chat.id, shop_text, parse_mode="Markdown")
 
@@ -144,7 +143,7 @@ def receive_webapp_data(message):
 
 print("Бот успешно запущен! Жду команд...")
 
-# Веб-сервер для Render
+# Веб-сервер для Render (анти-сон)
 class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -152,14 +151,13 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Bot is alive!")
 
 def run_server():
-    port = int(os.environ.com("PORT", 10000) if hasattr(os, "environ") else 10000)
-    # Исправление для безопасности порта на Render:
     port = int(os.environ.get("PORT", 10000))
     server = HTTPServer(("0.0.0.0", port), SimpleHandler)
     server.serve_forever()
 
 threading.Thread(target=run_server, daemon=True).start()
 
+# Авто-переподключение 24/7
 while True:
     try:
         bot.polling(none_stop=True, interval=0, timeout=20)
