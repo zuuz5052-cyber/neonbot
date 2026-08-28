@@ -23,7 +23,8 @@ cursor.execute('''
 ''')
 conn.commit()
 
-# 2. Твои ссылки на игры
+# 2. Ссылки на игры и магазин
+URL_SHOP = "https://shopgg.tiiny.site" 
 URL_NEON_GAME = "https://neongamesnownb.tiiny.site" 
 URL_TRACK_GAME = "https://trackdeathgame.tiiny.site" 
 URL_WORDS_GAME = "https://worldsgame.tiiny.site" 
@@ -32,8 +33,9 @@ URL_WAVE_GAME = "https://wawegame.tiiny.site"
 def get_main_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
+    # Кнопки профиля и магазина на первой строчке рядом
     btn_profile = KeyboardButton("👤 Профиль")
-    btn_shop = KeyboardButton("🛒 Магазин")
+    btn_shop = KeyboardButton("🛒 Магазин", web_app=WebAppInfo(url=URL_SHOP))
     
     btn_neon = KeyboardButton("⚡ Неон", web_app=WebAppInfo(url=URL_NEON_GAME))
     btn_track = KeyboardButton("🏎 Трасса смерти", web_app=WebAppInfo(url=URL_TRACK_GAME))
@@ -62,25 +64,7 @@ def start_cmd(message):
     except Exception as e:
         print(f"Ошибка в start: {e}")
 
-# 🛒 МАГАЗИН (ПЕРЕНЕСЕН НАВЕРХ ДЛЯ МГНОВЕННОГО ОТВЕТА)
-@bot.message_handler(func=lambda message: message.text == "🛒 Магазин")
-def shop_cmd(message):
-    try:
-        shop_text = (
-            "🛒 **Магазин призов за очки:**\n\n"
-            "1️⃣ **Игра в боте по вашему пожеланию**\n"
-            "   💰 Цена: **2 000 очков**\n\n"
-            "2️⃣ **Рандомный скин КС (от 50 до 200 руб.)**\n"
-            "   💰 Цена: **7 777 очков**\n\n"
-            "3️⃣ **Прокачка на кейс батле на 50 рублей**\n"
-            "   💰 Цена: **10 000 очков**\n\n"
-            "👇 Накопил нужное количество очков? Сделай скриншот профиля и пиши создателю: **@zews_zuuz**"
-        )
-        bot.send_message(message.chat.id, shop_text, parse_mode="Markdown")
-    except Exception as e:
-        print(f"Ошибка в магазине: {e}")
-
-# 👤 ПРОФИЛЬ
+# Обработка нажатия на кнопку "👤 Профиль"
 @bot.message_handler(func=lambda message: message.text and "Профиль" in message.text)
 def profile_cmd(message):
     try:
@@ -105,21 +89,7 @@ def profile_cmd(message):
     except Exception as e:
         print(f"Ошибка в профиле: {e}")
 
-# 🆘 ПОМОЩЬ / HELP
-@bot.message_handler(commands=['help'])
-def help_cmd(message):
-    try:
-        help_text = (
-            "🆘 **Помощь по боту:**\n\n"
-            "🎮 Играй в мини-игры, зарабатывай очки и трать их в магазине!\n"
-            "🛒 Нажми кнопку «🛒 Магазин», чтобы посмотреть доступные призы.\n\n"
-            "💬 По всем вопросам и для получения призов пиши создателю: **@zews_zuuz**"
-        )
-        bot.send_message(message.chat.id, help_text, parse_mode="Markdown")
-    except Exception as e:
-        print(f"Ошибка в help: {e}")
-
-# 🎮 ПЕРЕХВАТ ОЧКОВ ИЗ ИГРЫ Web App
+# ПЕРЕХВАТ ОЧКОВ ИЗ ИГРЫ Web App
 @bot.message_handler(content_types=['web_app_data'])
 def receive_webapp_data(message):
     try:
