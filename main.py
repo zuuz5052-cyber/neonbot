@@ -28,7 +28,7 @@ URL_SHOP = "https://shopgg.tiiny.site"
 URL_NEON_GAME = "https://neongamesnownb.tiiny.site" 
 URL_TRACK_GAME = "https://trackdeathgame.tiiny.site" 
 URL_WORDS_GAME = "https://worldsgame.tiiny.site" 
-URL_WAVE_GAME = "https://wawegame.tiiny.site" # <--- Твоя актуальная ссылка на игру "Волна"
+URL_WAVE_GAME = "https://awesomewawe.tiiny.site" # <--- Новая актуальная ссылка на игру "Волна"
 
 # Функция клавиатуры (автоматически определяет адрес твоего сервера для лидерборда)
 def get_main_keyboard():
