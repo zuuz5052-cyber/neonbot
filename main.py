@@ -13,7 +13,6 @@ bot = telebot.TeleBot(TOKEN)
 conn = sqlite3.connect('users.db', check_same_thread=False)
 cursor = conn.cursor()
 
-# Создаем таблицу игроков, если её еще нет
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS players (
         user_id INTEGER PRIMARY KEY,
@@ -23,7 +22,6 @@ cursor.execute('''
     )
 ''')
 conn.commit()
-# ---------------------------------
 
 # 2. Твои ссылки на игры
 URL_NEON_GAME = "https://neongamesnownb.tiiny.site" 
@@ -32,20 +30,15 @@ URL_WORDS_GAME = "https://worldsgame.tiiny.site"
 URL_WAVE_GAME = "https://wawegame.tiiny.site" 
 
 def get_main_keyboard():
-    # row_width=2 делает так, что следующие кнопки будут выстраиваться по 2 в ряд
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
-    # 1. Создаем кнопки
     btn_profile = KeyboardButton("👤 Профиль")
     btn_neon = KeyboardButton("⚡ Неон", web_app=WebAppInfo(url=URL_NEON_GAME))
     btn_track = KeyboardButton("🏎 Трасса смерти", web_app=WebAppInfo(url=URL_TRACK_GAME))
     btn_words = KeyboardButton("💬 Игра в слова", web_app=WebAppInfo(url=URL_WORDS_GAME))
     btn_wave = KeyboardButton("🌊 Волна", web_app=WebAppInfo(url=URL_WAVE_GAME))
     
-    # 2. Сначала добавляем Профиль (он будет один на первой строчке во всю ширину)
     markup.add(btn_profile)
-    
-    # 3. Затем добавляем игры (они автоматически встанут сеткой по 2 в ряд: 1-2 и 3-4)
     markup.add(btn_neon, btn_track, btn_words, btn_wave)
     
     return markup
@@ -85,6 +78,30 @@ def profile_cmd(message):
         f"Продолжай играть и ставь новые рекорды!"
     )
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
+
+# ПЕРЕХВАТ ОЧКОВ ИЗ ИГРЫ Web App
+@bot.message_handler(content_types=['web_app_data'])
+def receive_webapp_data(message):
+    user_id = message.from_user.id
+    try:
+        earned_score = int(message.web_app_data.data)
+    except ValueError:
+        earned_score = 0
+        
+    # Проверяем есть ли юзер в базе, если нет — создаем
+    cursor.execute("INSERT OR IGNORE INTO players (user_id, username, total_score, games_played) VALUES (?, ?, 0, 0)", 
+                   (user_id, message.from_user.first_name or "Игрок"))
+    
+    # Обновляем очки и прибавляем +1 к сыгранным играм
+    cursor.execute("UPDATE players SET total_score = total_score + ?, games_played = games_played + 1 WHERE user_id = ?", 
+                   (earned_score, user_id))
+    conn.commit()
+    
+    bot.send_message(
+        message.chat.id, 
+        f"🎮 Игра окончена!\n✨ Заработано очков: **{earnedscore}**\n📊 Они успешно записаны твой профиль!", 
+        parse_mode="Markdown"
+    )
 
 print("Бот успешно запущен! Жду команд...")
 
