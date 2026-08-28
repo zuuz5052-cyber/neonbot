@@ -63,16 +63,19 @@ def start_cmd(message):
     except Exception as e:
         print(f"Ошибка в start: {e}")
 
-# Команда /help с твоим юзернеймом
+# Точный обработчик для команды /help
 @bot.message_handler(commands=['help'])
 def help_cmd(message):
-    help_text = (
-        "🆘 **Помощь по боту:**\n\n"
-        "🎮 Играй в мини-игры, зарабатывай очки и трать их в магазине!\n"
-        "🛒 Нажми кнопку «🛒 Магазин», чтобы посмотреть доступные призы.\n\n"
-        "💬 По всем вопросам и для получения призов пиши создателю: **@zews_zuuz**"
-    )
-    bot.send_message(message.chat.id, help_text, parse_mode="Markdown")
+    try:
+        help_text = (
+            "🆘 **Помощь по боту:**\n\n"
+            "🎮 Играй в мини-игры, зарабатывай очки и трать их в магазине!\n"
+            "🛒 Нажми кнопку «🛒 Магазин», чтобы посмотреть доступные призы.\n\n"
+            "💬 По всем вопросам и для получения призов пиши создателю: **@zews_zuuz**"
+        )
+        bot.send_message(message.chat.id, help_text, parse_mode="Markdown")
+    except Exception as e:
+        print(f"Ошибка в help: {e}")
 
 # Обработка нажатия на кнопку "👤 Профиль"
 @bot.message_handler(func=lambda message: message.text and "Профиль" in message.text)
@@ -99,20 +102,23 @@ def profile_cmd(message):
     except Exception as e:
         print(f"Ошибка в профиле: {e}")
 
-# Обработка нажатия на кнопку "🛒 Магазин" (товары по возрастанию цены)
+# Точный обработчик для кнопки "🛒 Магазин"
 @bot.message_handler(func=lambda message: message.text == "🛒 Магазин")
 def shop_cmd(message):
-    shop_text = (
-        "🛒 **Магазин призов за очки:**\n\n"
-        "1️⃣ **Игра в боте по вашему пожеланию**\n"
-        "   💰 Цена: **2 000 очков**\n\n"
-        "2️⃣ **Рандомный скин КС (от 50 до 200 руб.)**\n"
-        "   💰 Цена: **7 777 очков**\n\n"
-        "3️⃣ **Прокачка на кейс батле на 50 рублей**\n"
-        "   💰 Цена: **10 000 очков**\n\n"
-        "👇 Накопил нужное количество очков? Сделай скриншот профиля и пиши создателю: **@zews_zuuz**"
-    )
-    bot.send_message(message.chat.id, shop_text, parse_mode="Markdown")
+    try:
+        shop_text = (
+            "🛒 **Магазин призов за очки:**\n\n"
+            "1️⃣ **Игра в боте по вашему пожеланию**\n"
+            "   💰 Цена: **2 000 очков**\n\n"
+            "2️⃣ **Рандомный скин КС (от 50 до 200 руб.)**\n"
+            "   💰 Цена: **7 777 очков**\n\n"
+            "3️⃣ **Прокачка на кейс батле на 50 рублей**\n"
+            "   💰 Цена: **10 000 очков**\n\n"
+            "👇 Накопил нужное количество очков? Сделай скриншот профиля и пиши создателю: **@zews_zuuz**"
+        )
+        bot.send_message(message.chat.id, shop_text, parse_mode="Markdown")
+    except Exception as e:
+        print(f"Ошибка в магазине: {e}")
 
 # ПЕРЕХВАТ ОЧКОВ ИЗ ИГРЫ Web App
 @bot.message_handler(content_types=['web_app_data'])
